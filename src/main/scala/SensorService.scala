@@ -1,10 +1,9 @@
 import akka.actor.ActorSystem
-import akka.cluster.pubsub.DistributedPubSub
 import vergesense.VergeSenseClient
 
-object SensorService extends App with AppConfiguration {
+object SensorService extends App with AppConfig {
 
-  implicit val system = ActorSystem(conf)
+  implicit val system = ActorSystem("", config)
 
   val mediator = DistributedPubSub(system).mediator
   val vergeSenseApiKey = sys.env.getOrElse("API_KEY", "")
