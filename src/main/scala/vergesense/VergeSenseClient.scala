@@ -15,7 +15,7 @@ class VergeSenseClient(url: String, apiKey: String)(implicit val system: ActorSy
 
   val http = Http(system)
 
-  def sendRequest(path: String)(implicit ec: ExecutionContext): Future[Or[String, Every[String]]] = {
+  def sendRequest(path: String)(implicit ec: ExecutionContext): Future[Or[String, Error]] = {
 
     http.singleRequest(
       HttpRequest(
@@ -25,12 +25,12 @@ class VergeSenseClient(url: String, apiKey: String)(implicit val system: ActorSy
       Unmarshal(httpResponse.entity).to[String].map { response =>
         httpResponse.status match {
           case StatusCodes.OK => Good(response)
-          case _ => Bad(One("Failure: " + response))
+          case _ => /* error case */
         }
       }.recoverWith {
         case _ =>
           httpResponse.discardEntityBytes()
-          Future.successful(Bad(One("Error: " + url)))
+        /* error case */
       }
     }.flatten
 
