@@ -1,7 +1,10 @@
+import SensorManagementActor.{Get, Put}
 import akka.actor.{Actor, ActorRef, Props}
+import org.scalactic.Good
+import vergesense.VergeSenseRequests.SensorList
+import vergesense.{VergeSenseClient, VergeSenseRequests}
 
 import scala.concurrent.duration._
-import vergesense.{VergeSenseClient, VergeSenseRequests}
 
 case class GetAllSensors()
 case class FetchAndUpdate()
@@ -9,7 +12,7 @@ case class FetchAndUpdate()
 object SensorServiceActor {
 
   def props(vergeSenseClient: VergeSenseClient,
-            sensorManager: SensorManagementActor,
+            sensorManager: SensorManager,
             mediator: ActorRef): Props = {
     Props(new SensorServiceActor(vergeSenseClient, sensorManager, mediator))
   }
@@ -17,7 +20,7 @@ object SensorServiceActor {
 }
 
 class SensorServiceActor(vergeSenseClient: VergeSenseClient,
-                         sensorManager: SensorManagementActor,
+                         sensorManager: SensorManager,
                          mediator: ActorRef) extends Actor {
 
   implicit val ec = context.dispatcher
@@ -30,10 +33,17 @@ class SensorServiceActor(vergeSenseClient: VergeSenseClient,
 
   override def receive: Receive = {
     case GetAllSensors =>
-      val sensors = VergeSenseRequests.getAllSensors(vergeSenseClient)
+      VergeSenseRequests.getAllSensors(vergeSenseClient).map {
+        case Good(sensors: SensorList) => sensorManager.put(sensors)
+        case _ =>
+      }
     case FetchAndUpdate =>
       val newUpdateTime = System.currentTimeMillis()
-      val sensors = VergeSenseRequests.getAllSensorHistory(vergeSenseClient,
+      sensorManager.get().map(_.map { sensor =>
+        VergeSenseRequests.getHistoryForSensor(vergeSenseClient,
+          sensor.id, lastUpdateTime, newUpdateTime)
+      })
+      val sensors = VergeSenseRequests.getHistoryForSensor(vergeSenseClient,
         lastUpdateTime, newUpdateTime)
 
 

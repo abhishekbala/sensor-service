@@ -1,6 +1,10 @@
 import SensorManagementActor.{Get, Put}
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import akka.pattern.ask
 import vergesense.Sensor
+import vergesense.VergeSenseRequests.SensorList
+
+import scala.concurrent.Future
 
 // Not a full cache implementation (with library), just actor managing local cache
 
@@ -13,6 +17,12 @@ object SensorManagementActor {
   case class Get()
   case class Put(sensors: List[Sensor])
 
+}
+
+class SensorManager(ref: ActorRef) {
+
+  def get(): Future[SensorList] = (ref ? Get()).mapTo[SensorList]
+  def put(sensors: SensorList): Unit = ref ! Put(sensors)
 }
 
 // This actor can maintain the list of users that our system has knowledge of

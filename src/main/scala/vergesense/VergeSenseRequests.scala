@@ -2,9 +2,11 @@ package vergesense
 
 import org.json4s.{ShortTypeHints, native}
 import org.scalactic.{Bad, ErrorMessage, Good, Or}
+import vergesense.VergeSenseRequests.SensorList
 
 import scala.concurrent.Future
 
+case class Sensors(sensors: SensorList)
 case class Sensor(id: String, path: String)
 case class SensorEvent(timeStamp: String, id: String, count: Int)
 
@@ -15,20 +17,29 @@ object VergeSenseRequests {
     native.Serialization.formats(ShortTypeHints(classOf[Sensor] :: Nil))
 
   type SensorList = List[Sensor]
-  def deserialize(response: String): SensorList = {
-    serialization.read[SensorList](response)
+  private def deserialize[T](response: String): T = {
+    serialization.read[T](response)
   }
 
   def getAllSensors(client: VergeSenseClient): Future[Or[SensorList, ErrorMessage]] = {
     client.sendRequest("/sensors").map {
-      case Good(s: String) => Good(deserialize(s))
+      case Good(s: String) => Good(deserialize[Sensors](s).sensors)
       case err@Bad(_) => err
     }
   }
 
-  def getAllSensorHistory(client: VergeSenseClient,
-                          start: Long, end: Long): Future[List[SensorEvent]] = {
-
+  /*
+    Can also implement a method that takes in multiple sensors;
+    However, VergeSense API is only GET, and this does not make sense for large # of sensors
+  */
+  def getHistoryForSensor(client: VergeSenseClient,
+                          id: String,
+                          start: Long,
+                          end: Long): Future[Or[SensorEvent, ErrorMessage]] = {
+    client.sendRequest(s"/sensors/history?start=$start?end=$end?ids=$id").map {
+      case Good(s: String) => Good(deserialize(s))
+      case err@Bad(_) => err
+    }
   }
 
 }

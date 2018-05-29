@@ -27,6 +27,7 @@ class VergeSenseClient(url: String, apiKey: String)(implicit val system: ActorSy
         case StatusCodes.OK =>
 
           // TODO: Need to match on content type and handle accordingly
+          // particularly for content-type csv case..
 /*          httpResponse.entity.contentType match {
 
           } */
