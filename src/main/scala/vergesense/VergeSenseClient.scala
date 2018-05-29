@@ -16,10 +16,7 @@ class VergeSenseClient(url: String, apiKey: String)(implicit val system: ActorSy
 
   val http = Http(system)
 
-  def sendRequest(path: String, contentType: String)(implicit ec: ExecutionContext): Future[Or[String, String]] = {
-
-
-
+  def sendRequest(path: String)(implicit ec: ExecutionContext): Future[Or[String, String]] = {
     http.singleRequest(
       HttpRequest(
         uri = Uri("https://" + url + path))
