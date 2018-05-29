@@ -2,6 +2,7 @@ package vergesense
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpRequest, StatusCodes, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
@@ -15,25 +16,33 @@ class VergeSenseClient(url: String, apiKey: String)(implicit val system: ActorSy
 
   val http = Http(system)
 
-  def sendRequest(path: String)(implicit ec: ExecutionContext): Future[Or[String, Error]] = {
+  def sendRequest(path: String, contentType: String)(implicit ec: ExecutionContext): Future[Or[String, String]] = {
+
+
 
     http.singleRequest(
       HttpRequest(
-        uri = Uri("https://" + url + path)
+        uri = Uri("https://" + url + path))
+        .withHeaders(RawHeader("x-api-key", apiKey)
       )
-    ).map { httpResponse =>
-      Unmarshal(httpResponse.entity).to[String].map { response =>
-        httpResponse.status match {
-          case StatusCodes.OK => Good(response)
-          case _ => /* error case */
+    ).flatMap { httpResponse =>
+      httpResponse.status match {
+        case StatusCodes.OK =>
+
+          // TODO: Need to match on content type and handle accordingly
+/*          httpResponse.entity.contentType match {
+
+          } */
+          Unmarshal(httpResponse.entity).to[String].map { response =>
+          Good(response)
         }
-      }.recoverWith {
-        case _ =>
-          httpResponse.discardEntityBytes()
-        /* error case */
+        case _ => Unmarshal(httpResponse.entity).to[String].map { response =>
+          Bad("Request failed: " + response)
+        }
       }
-    }.flatten
-
-  }
-
+    }.recoverWith {
+      case error =>
+        Future.successful(Bad("Error for " + url + " " + error))
+    }
+  }.flatten
 }
